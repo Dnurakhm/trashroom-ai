@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-dark-bg text-light-text font-sans antialiased;
+  background-image: linear-gradient(to bottom right, #1a001a, #0d0d0d);
+  min-height: 100vh;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #2a2a2a;
+}
+::-webkit-scrollbar-thumb {
+  background: #ff2d75;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #ff4c8b;
+}
+
+::placeholder {
+  @apply text-subtle-text opacity-70;
+}
