@@ -1,26 +1,1031 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>TrashRoom AI</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrashRoom - AI-Hosted Trash Talk Battles</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        .pulse-animation {
+            animation: pulse 2s infinite;
+        }
+        .chat-bubble {
+            position: relative;
+            border-radius: 1.25rem;
+            padding: 1rem;
+            margin: 0.5rem 0;
+            max-width: 80%;
+        }
+        .ai-bubble {
+            background-color: #4a5568;
+            color: white;
+            border-bottom-left-radius: 0.25rem;
+            align-self: flex-start;
+        }
+        .player-bubble {
+            background-color: #2d3748;
+            color: white;
+            border-bottom-right-radius: 0.25rem;
+            align-self: flex-end;
+        }
+        .vote-button {
+            transition: all 0.3s ease;
+        }
+        .vote-button:hover {
+            transform: scale(1.1);
+        }
+        .avatar-placeholder {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        .role-tag {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background-color: #f59e0b;
+            color: black;
+            border-radius: 9999px;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.6rem;
+            font-weight: bold;
+        }
+        .glow {
+            box-shadow: 0 0 10px 2px rgba(245, 158, 11, 0.7);
+        }
+        #qrCodeContainer {
+            width: 150px;
+            height: 150px;
+            margin: 0 auto;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+        }
+        .copy-link {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .copy-link:hover {
+            color: #f59e0b;
+        }
+        .copy-link.copied {
+            color: #10b981;
+        }
+    </style>
 </head>
-<body>
-  <h1>🔥 Трэш-комната с AI-хостом</h1>
-  <input id="userInput" placeholder="Напиши своё мнение" />
-  <button onclick="askAI()">Отправить</button>
-  <pre id="response"></pre>
+<body class="bg-gray-900 text-white min-h-screen flex flex-col">
+    <!-- Landing Page -->
+    <div id="landing" class="flex flex-col items-center justify-center flex-grow p-4">
+        <div class="text-center mb-8">
+            <h1 class="text-5xl font-bold mb-2 text-yellow-400">TRASH<span class="text-white">ROOM</span></h1>
+            <p class="text-xl text-gray-300">AI-hosted trash talk battles where only the wittiest survive</p>
+        </div>
+        
+        <div class="max-w-md w-full bg-gray-800 rounded-xl p-8 shadow-lg">
+            <div class="flex flex-col space-y-4">
+                <button id="joinGameBtn" class="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 px-6 rounded-lg transition-all duration-300 flex items-center justify-center">
+                    <i class="fas fa-door-open mr-2"></i> Join Game
+                </button>
+                <button id="createRoomBtn" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 flex items-center justify-center">
+                    <i class="fas fa-plus mr-2"></i> Create Room
+                </button>
+            </div>
+            
+            <div class="mt-8">
+                <h3 class="text-lg font-semibold mb-2 text-yellow-400">How to play:</h3>
+                <ul class="text-gray-300 space-y-2 text-sm">
+                    <li class="flex items-start"><i class="fas fa-robot mr-2 mt-1 text-yellow-400"></i> AI host presents a controversial topic</li>
+                    <li class="flex items-start"><i class="fas fa-comment-dots mr-2 mt-1 text-yellow-400"></i> Players submit savage responses</li>
+                    <li class="flex items-start"><i class="fas fa-vote-yea mr-2 mt-1 text-yellow-400"></i> Vote for the "King of Trash"</li>
+                    <li class="flex items-start"><i class="fas fa-trophy mr-2 mt-1 text-yellow-400"></i> Winner gets bragging rights</li>
+                    <li class="flex items-start"><i class="fas fa-qrcode mr-2 mt-1 text-yellow-400"></i> Invite friends via QR code or link</li>
+                </ul>
+            </div>
+        </div>
+    </div>
 
-  <script>
-    async function askAI() {
-      const input = document.getElementById("userInput").value;
-      const res = await fetch("/api/ask", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: input })
-      });
-      const data = await res.json();
-      document.getElementById("response").innerText = data.reply;
-    }
-  </script>
+    <!-- Join Room Modal -->
+    <div id="joinModal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-gray-800 rounded-xl p-6 w-full max-w-md">
+            <h2 class="text-2xl font-bold mb-4 text-yellow-400">Join a Game</h2>
+            <div class="mb-4">
+                <label class="block text-gray-300 mb-2">Room Code</label>
+                <input type="text" id="roomCode" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-500">
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-300 mb-2">Your Nickname</label>
+                <input type="text" id="joinNickname" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-500" maxlength="15">
+            </div>
+            <div class="flex justify-end space-x-3">
+                <button id="cancelJoinBtn" class="px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-500 transition">Cancel</button>
+                <button id="confirmJoinBtn" class="px-4 py-2 bg-yellow-500 text-black rounded-lg hover:bg-yellow-400 transition font-bold">Join</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Room Modal -->
+    <div id="createModal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-gray-800 rounded-xl p-6 w-full max-w-md">
+            <h2 class="text-2xl font-bold mb-4 text-yellow-400">Create a Room</h2>
+            <div class="mb-4">
+                <label class="block text-gray-300 mb-2">Your Nickname</label>
+                <input type="text" id="createNickname" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-500" maxlength="15">
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-300 mb-2">Rounds (3-5)</label>
+                <select id="roundCount" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-500">
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                </select>
+            </div>
+            <div class="flex justify-end space-x-3">
+                <button id="cancelCreateBtn" class="px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-500 transition">Cancel</button>
+                <button id="confirmCreateBtn" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-500 transition font-bold">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Room (hidden by default) -->
+    <div id="gameRoom" class="hidden flex-col h-screen">
+        <!-- Room Header -->
+        <div class="bg-gray-800 p-4 flex justify-between items-center border-b border-gray-700">
+            <div class="flex items-center">
+                <button id="leaveRoomBtn" class="mr-4 text-gray-400 hover:text-white">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <h2 class="text-xl font-bold">Room: <span id="roomCodeDisplay" class="text-yellow-400">ABCD12</span></h2>
+            </div>
+            <div class="flex items-center">
+                <span class="mr-2 text-gray-300"><i class="fas fa-users mr-1"></i> <span id="playerCount">1</span>/6</span>
+                <span class="ml-4 text-gray-300"><i class="fas fa-flag-checkered mr-1"></i> Round <span id="currentRound">1</span>/<span id="totalRounds">3</span></span>
+                <button id="inviteBtn" class="ml-4 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-lg text-sm flex items-center">
+                    <i class="fas fa-share-alt mr-1"></i> Invite
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Game Area -->
+        <div class="flex flex-col md:flex-row flex-grow overflow-hidden">
+            <!-- Player List -->
+            <div class="w-full md:w-1/4 bg-gray-800 border-r border-gray-700 p-4 overflow-y-auto">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-lg text-yellow-400">Players</h3>
+                    <button id="showInviteBtn" class="text-sm text-blue-400 hover:text-blue-300">
+                        <i class="fas fa-qrcode mr-1"></i> Invite
+                    </button>
+                </div>
+                <div id="playerList" class="space-y-3">
+                    <!-- Players will be added here dynamically -->
+                </div>
+                
+                <!-- Invite Section (hidden by default) -->
+                <div id="inviteSection" class="mt-6 hidden">
+                    <h3 class="font-bold text-lg mb-2 text-yellow-400">Invite Players</h3>
+                    <div class="bg-gray-700 p-4 rounded-lg">
+                        <div id="qrCodeContainer"></div>
+                        <div class="mt-4 text-center">
+                            <p class="text-sm text-gray-300 mb-2">Scan to join</p>
+                            <div class="flex items-center justify-between bg-gray-800 p-2 rounded-lg">
+                                <input type="text" id="inviteLink" readonly class="flex-grow bg-transparent text-sm truncate" value="https://trashroom.com/join/ABCD12">
+                                <button id="copyLinkBtn" class="copy-link text-blue-400 ml-2">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </div>
+                            <p class="text-xs text-gray-400 mt-2">Or share the room code: <span class="font-bold" id="shareRoomCode">ABCD12</span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat and Game Area -->
+            <div class="flex-grow flex flex-col">
+                <!-- AI Host Area -->
+                <div class="bg-gray-800 border-b border-gray-700 p-4 flex items-center">
+                    <div class="relative">
+                        <div class="w-12 h-12 rounded-full bg-yellow-500 flex items-center justify-center text-2xl">
+                            <i class="fas fa-robot text-gray-900"></i>
+                        </div>
+                        <div class="absolute -bottom-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
+                            <i class="fas fa-bolt"></i>
+                        </div>
+                    </div>
+                    <div class="ml-3">
+                        <h3 class="font-bold">AI Host</h3>
+                        <p class="text-sm text-gray-400">TrashTalk Master</p>
+                    </div>
+                </div>
+
+                <!-- Chat Display -->
+                <div id="chatDisplay" class="flex-grow overflow-y-auto p-4 space-y-3 flex flex-col">
+                    <!-- AI welcome message -->
+                    <div class="chat-bubble ai-bubble">
+                        <div class="font-bold text-yellow-400 mb-1">AI Host:</div>
+                        <p>Welcome to TrashRoom! I'll be your host for this savage showdown. Get ready to roast or be roasted!</p>
+                    </div>
+                    
+                    <!-- Game topic will appear here -->
+                    <div id="gameTopic" class="hidden">
+                        <div class="chat-bubble ai-bubble pulse-animation">
+                            <div class="font-bold text-yellow-400 mb-1">AI Host:</div>
+                            <p class="text-xl">🔥 <span id="topicText">Who would win in a fight: a broke marketer or a lazy analyst?</span> 🔥</p>
+                            <div class="mt-2 text-sm text-gray-300">
+                                <p>Submit your best trash talk below! You have <span id="timeLeft">60</span> seconds.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Player submissions will appear here -->
+                    <div id="submissionsArea"></div>
+                    
+                    <!-- Voting area will appear here -->
+                    <div id="votingArea" class="hidden">
+                        <div class="chat-bubble ai-bubble">
+                            <div class="font-bold text-yellow-400 mb-1">AI Host:</div>
+                            <p>Time to vote for the King of Trash! Click on the best (or worst) response below.</p>
+                            <div class="mt-2 text-sm text-gray-300">
+                                <p>Share this voting link with others: <span id="votingLink" class="text-blue-400">https://trashroom.com/vote/ABCD12</span></p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Results will appear here -->
+                    <div id="resultsArea" class="hidden">
+                        <div class="chat-bubble ai-bubble">
+                            <div class="font-bold text-yellow-400 mb-1">AI Host:</div>
+                            <p>The winner of this round is <span class="font-bold text-yellow-400">PlayerName</span> with their savage response!</p>
+                            <div class="mt-2">
+                                <p class="italic">"Their response here"</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Input Area -->
+                <div class="bg-gray-800 border-t border-gray-700 p-4">
+                    <div id="inputArea" class="hidden">
+                        <div class="flex items-center">
+                            <input type="text" id="playerInput" placeholder="Type your savage response..." class="flex-grow bg-gray-700 border border-gray-600 rounded-l-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-500">
+                            <button id="submitResponseBtn" class="bg-yellow-500 text-black px-4 py-2 rounded-r-lg hover:bg-yellow-400 transition font-bold">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                        <div class="mt-2 flex flex-wrap gap-2">
+                            <button class="quick-response-btn text-xs bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded-full transition">"That's not a strategy, that's a cry for help"</button>
+                            <button class="quick-response-btn text-xs bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded-full transition">"I've seen better ideas in spam emails"</button>
+                            <button class="quick-response-btn text-xs bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded-full transition">"Your LinkedIn is more fictional than Harry Potter"</button>
+                        </div>
+                    </div>
+                    
+                    <div id="waitingArea" class="text-center py-4 text-gray-400">
+                        <p>Waiting for the AI host to start the round...</p>
+                    </div>
+                    
+                    <div id="votingButtons" class="hidden grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+                        <!-- Voting buttons will be added here dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scoreboard -->
+            <div class="w-full md:w-1/4 bg-gray-800 border-l border-gray-700 p-4 overflow-y-auto">
+                <h3 class="font-bold text-lg mb-4 text-yellow-400">Scoreboard</h3>
+                <div id="scoreboard" class="space-y-3">
+                    <!-- Scores will be added here dynamically -->
+                    <div class="flex items-center justify-between bg-gray-700 p-3 rounded-lg">
+                        <div class="flex items-center">
+                            <div class="avatar-placeholder bg-purple-500 mr-3">P1</div>
+                            <span>PlayerOne</span>
+                        </div>
+                        <span class="font-bold">3</span>
+                    </div>
+                    <div class="flex items-center justify-between bg-gray-700 p-3 rounded-lg">
+                        <div class="flex items-center">
+                            <div class="avatar-placeholder bg-blue-500 mr-3">P2</div>
+                            <span>PlayerTwo</span>
+                        </div>
+                        <span class="font-bold">2</span>
+                    </div>
+                </div>
+                
+                <div class="mt-6">
+                    <h3 class="font-bold text-lg mb-2 text-yellow-400">Current Roles</h3>
+                    <div id="rolesList" class="space-y-2 text-sm">
+                        <!-- Roles will be added here dynamically -->
+                        <div class="flex items-center">
+                            <span class="inline-block w-3 h-3 rounded-full bg-green-500 mr-2"></span>
+                            <span>PlayerOne: <span class="text-yellow-400">Broke Marketer</span></span>
+                        </div>
+                        <div class="flex items-center">
+                            <span class="inline-block w-3 h-3 rounded-full bg-red-500 mr-2"></span>
+                            <span>PlayerTwo: <span class="text-yellow-400">Lazy Analyst</span></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Voting Only View (for external voters) -->
+    <div id="votingOnlyView" class="hidden flex-col h-screen">
+        <div class="bg-gray-800 p-4 flex justify-between items-center border-b border-gray-700">
+            <div class="flex items-center">
+                <h2 class="text-xl font-bold">Voting for Room: <span id="votingRoomCode" class="text-yellow-400">ABCD12</span></h2>
+            </div>
+        </div>
+        
+        <div class="flex-grow overflow-y-auto p-4">
+            <div id="votingOptions" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Voting options will be added here -->
+            </div>
+            
+            <div id="votingSubmitted" class="hidden text-center py-8">
+                <div class="text-5xl mb-4">✅</div>
+                <h3 class="text-xl font-bold mb-2">Vote submitted!</h3>
+                <p class="text-gray-400">Thanks for helping crown the King of Trash</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Game state
+        const gameState = {
+            players: [],
+            currentRound: 1,
+            totalRounds: 3,
+            roomCode: '',
+            playerName: '',
+            isHost: false,
+            gameStatus: 'waiting', // waiting, playing, voting, results
+            submissions: [],
+            votes: {},
+            votingLink: ''
+        };
+
+        // Sample topics
+        const topics = [
+            "Who would win in a fight: a broke marketer or a lazy analyst?",
+            "Your startup's pitch deck vs. a kindergarten art project - which has more substance?",
+            "Defend your terrible app idea to the panel of investors (who are all 10-year-olds)",
+            "As the 'Growth Hacker' with no growth, explain your strategy",
+            "Your LinkedIn post got 0 likes - roast yourself before we do",
+            "The client said your design looks like it was made in Microsoft Paint - respond"
+        ];
+
+        // Sample roles
+        const roles = [
+            "Broke Marketer",
+            "Lazy Analyst",
+            "Growth Hacker (no growth)",
+            "Startup Founder (no product)",
+            "UX Designer (who hates users)",
+            "Data Scientist (bad at math)",
+            "SEO Expert (page 5 of Google)",
+            "Influencer (47 followers)"
+        ];
+
+        // DOM elements
+        const landingPage = document.getElementById('landing');
+        const gameRoom = document.getElementById('gameRoom');
+        const votingOnlyView = document.getElementById('votingOnlyView');
+        const joinModal = document.getElementById('joinModal');
+        const createModal = document.getElementById('createModal');
+        const joinGameBtn = document.getElementById('joinGameBtn');
+        const createRoomBtn = document.getElementById('createRoomBtn');
+        const cancelJoinBtn = document.getElementById('cancelJoinBtn');
+        const confirmJoinBtn = document.getElementById('confirmJoinBtn');
+        const cancelCreateBtn = document.getElementById('cancelCreateBtn');
+        const confirmCreateBtn = document.getElementById('confirmCreateBtn');
+        const roomCodeInput = document.getElementById('roomCode');
+        const joinNicknameInput = document.getElementById('joinNickname');
+        const createNicknameInput = document.getElementById('createNickname');
+        const roundCountSelect = document.getElementById('roundCount');
+        const leaveRoomBtn = document.getElementById('leaveRoomBtn');
+        const roomCodeDisplay = document.getElementById('roomCodeDisplay');
+        const playerCountDisplay = document.getElementById('playerCount');
+        const currentRoundDisplay = document.getElementById('currentRound');
+        const totalRoundsDisplay = document.getElementById('totalRounds');
+        const playerList = document.getElementById('playerList');
+        const chatDisplay = document.getElementById('chatDisplay');
+        const gameTopic = document.getElementById('gameTopic');
+        const topicText = document.getElementById('topicText');
+        const timeLeftDisplay = document.getElementById('timeLeft');
+        const submissionsArea = document.getElementById('submissionsArea');
+        const votingArea = document.getElementById('votingArea');
+        const resultsArea = document.getElementById('resultsArea');
+        const inputArea = document.getElementById('inputArea');
+        const playerInput = document.getElementById('playerInput');
+        const submitResponseBtn = document.getElementById('submitResponseBtn');
+        const waitingArea = document.getElementById('waitingArea');
+        const votingButtons = document.getElementById('votingButtons');
+        const scoreboard = document.getElementById('scoreboard');
+        const rolesList = document.getElementById('rolesList');
+        const quickResponseBtns = document.querySelectorAll('.quick-response-btn');
+        const inviteBtn = document.getElementById('inviteBtn');
+        const showInviteBtn = document.getElementById('showInviteBtn');
+        const inviteSection = document.getElementById('inviteSection');
+        const qrCodeContainer = document.getElementById('qrCodeContainer');
+        const inviteLink = document.getElementById('inviteLink');
+        const copyLinkBtn = document.getElementById('copyLinkBtn');
+        const shareRoomCode = document.getElementById('shareRoomCode');
+        const votingLink = document.getElementById('votingLink');
+        const votingRoomCode = document.getElementById('votingRoomCode');
+        const votingOptions = document.getElementById('votingOptions');
+        const votingSubmitted = document.getElementById('votingSubmitted');
+
+        // Check URL for voting or joining parameters
+        function checkUrlParameters() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const joinCode = urlParams.get('join');
+            const voteCode = urlParams.get('vote');
+            
+            if (voteCode) {
+                // Show voting only view
+                showVotingView(voteCode);
+            } else if (joinCode) {
+                // Pre-fill join form with code
+                roomCodeInput.value = joinCode;
+                joinModal.classList.remove('hidden');
+            }
+        }
+
+        // Show voting only view
+        function showVotingView(roomCode) {
+            landingPage.classList.add('hidden');
+            gameRoom.classList.add('hidden');
+            votingOnlyView.classList.remove('hidden');
+            votingRoomCode.textContent = roomCode;
+            
+            // Simulate loading voting options
+            setTimeout(() => {
+                loadVotingOptions(roomCode);
+            }, 1000);
+        }
+
+        // Load voting options for external voters
+        function loadVotingOptions(roomCode) {
+            votingOptions.innerHTML = '';
+            
+            // Simulate getting submissions from server
+            const sampleSubmissions = [
+                { player: "TrashMaster", response: "That's not a strategy, that's a cry for help" },
+                { player: "RoastKing", response: "I've seen better ideas in spam emails" },
+                { player: "BurnQueen", response: "Your LinkedIn is more fictional than Harry Potter" },
+                { player: "SavageSam", response: "Your last campaign was so bad it went viral... for being bad" }
+            ];
+            
+            sampleSubmissions.forEach((submission, index) => {
+                const option = document.createElement('div');
+                option.className = 'bg-gray-700 p-4 rounded-lg cursor-pointer hover:bg-gray-600 transition';
+                option.innerHTML = `
+                    <div class="font-bold text-blue-400 mb-1">${submission.player}</div>
+                    <div class="text-sm">"${submission.response}"</div>
+                `;
+                
+                option.addEventListener('click', () => {
+                    // In a real app, you would send the vote to the server
+                    votingOptions.classList.add('hidden');
+                    votingSubmitted.classList.remove('hidden');
+                    
+                    // Show thank you message
+                    setTimeout(() => {
+                        votingOnlyView.classList.add('hidden');
+                        landingPage.classList.remove('hidden');
+                    }, 3000);
+                });
+                
+                votingOptions.appendChild(option);
+            });
+        }
+
+        // Generate QR code for room
+        function generateQRCode(roomCode) {
+            const joinUrl = `${window.location.origin}${window.location.pathname}?join=${roomCode}`;
+            const voteUrl = `${window.location.origin}${window.location.pathname}?vote=${roomCode}`;
+            
+            // Set the invite and voting links
+            inviteLink.value = joinUrl;
+            shareRoomCode.textContent = roomCode;
+            votingLink.textContent = voteUrl;
+            gameState.votingLink = voteUrl;
+            
+            // Generate QR code
+            QRCode.toCanvas(qrCodeContainer, joinUrl, {
+                width: 150,
+                margin: 1,
+                color: {
+                    dark: '#000000',
+                    light: '#ffffff'
+                }
+            }, (error) => {
+                if (error) console.error(error);
+            });
+        }
+
+        // Copy invite link to clipboard
+        function copyInviteLink() {
+            const link = inviteLink.value;
+            navigator.clipboard.writeText(link).then(() => {
+                copyLinkBtn.innerHTML = '<i class="fas fa-check"></i>';
+                copyLinkBtn.classList.add('copied');
+                
+                setTimeout(() => {
+                    copyLinkBtn.innerHTML = '<i class="fas fa-copy"></i>';
+                    copyLinkBtn.classList.remove('copied');
+                }, 2000);
+            });
+        }
+
+        // Event listeners
+        joinGameBtn.addEventListener('click', () => joinModal.classList.remove('hidden'));
+        createRoomBtn.addEventListener('click', () => createModal.classList.remove('hidden'));
+        cancelJoinBtn.addEventListener('click', () => joinModal.classList.add('hidden'));
+        cancelCreateBtn.addEventListener('click', () => createModal.classList.add('hidden'));
+        confirmJoinBtn.addEventListener('click', joinRoom);
+        confirmCreateBtn.addEventListener('click', createRoom);
+        leaveRoomBtn.addEventListener('click', leaveRoom);
+        submitResponseBtn.addEventListener('click', submitResponse);
+        playerInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') submitResponse();
+        });
+        inviteBtn.addEventListener('click', () => {
+            inviteSection.classList.remove('hidden');
+            playerList.classList.add('hidden');
+        });
+        showInviteBtn.addEventListener('click', () => {
+            inviteSection.classList.toggle('hidden');
+            playerList.classList.toggle('hidden');
+        });
+        copyLinkBtn.addEventListener('click', copyInviteLink);
+
+        quickResponseBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                playerInput.value = btn.textContent;
+            });
+        });
+
+        // Functions
+        function joinRoom() {
+            const roomCode = roomCodeInput.value.trim().toUpperCase();
+            const nickname = joinNicknameInput.value.trim();
+            
+            if (!roomCode || !nickname) {
+                alert('Please enter both room code and nickname');
+                return;
+            }
+            
+            // In a real app, you would validate the room exists on the server
+            gameState.roomCode = roomCode;
+            gameState.playerName = nickname;
+            gameState.isHost = false;
+            
+            // Simulate joining a room with some players
+            gameState.players = [
+                { name: nickname, score: 0, avatar: 'P1', role: '' },
+                { name: 'AI Host', score: 0, avatar: 'AI', role: 'Host' },
+                { name: 'PlayerTwo', score: 0, avatar: 'P2', role: '' },
+                { name: 'PlayerThree', score: 0, avatar: 'P3', role: '' }
+            ];
+            
+            // Update UI
+            joinModal.classList.add('hidden');
+            landingPage.classList.add('hidden');
+            gameRoom.classList.remove('hidden');
+            roomCodeDisplay.textContent = roomCode;
+            playerCountDisplay.textContent = gameState.players.length;
+            
+            updatePlayerList();
+            updateScoreboard();
+            
+            // Start the game if host has already started
+            simulateGameStart();
+        }
+
+        function createRoom() {
+            const nickname = createNicknameInput.value.trim();
+            const rounds = parseInt(roundCountSelect.value);
+            
+            if (!nickname) {
+                alert('Please enter a nickname');
+                return;
+            }
+            
+            // Generate random room code
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let roomCode = '';
+            for (let i = 0; i < 6; i++) {
+                roomCode += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            
+            gameState.roomCode = roomCode;
+            gameState.playerName = nickname;
+            gameState.totalRounds = rounds;
+            gameState.isHost = true;
+            
+            // Add host as first player
+            gameState.players = [
+                { name: nickname, score: 0, avatar: 'P1', role: '' },
+                { name: 'AI Host', score: 0, avatar: 'AI', role: 'Host' }
+            ];
+            
+            // Update UI
+            createModal.classList.add('hidden');
+            landingPage.classList.add('hidden');
+            gameRoom.classList.remove('hidden');
+            roomCodeDisplay.textContent = roomCode;
+            playerCountDisplay.textContent = gameState.players.length;
+            currentRoundDisplay.textContent = gameState.currentRound;
+            totalRoundsDisplay.textContent = gameState.totalRounds;
+            
+            updatePlayerList();
+            updateScoreboard();
+            
+            // Generate QR code for the room
+            generateQRCode(roomCode);
+            
+            // Host can start the game
+            simulateGameStart();
+        }
+
+        function leaveRoom() {
+            // In a real app, you would notify the server
+            gameRoom.classList.add('hidden');
+            votingOnlyView.classList.add('hidden');
+            landingPage.classList.remove('hidden');
+            resetGameState();
+        }
+
+        function resetGameState() {
+            gameState.players = [];
+            gameState.currentRound = 1;
+            gameState.totalRounds = 3;
+            gameState.roomCode = '';
+            gameState.playerName = '';
+            gameState.isHost = false;
+            gameState.gameStatus = 'waiting';
+            gameState.submissions = [];
+            gameState.votes = {};
+            gameState.votingLink = '';
+        }
+
+        function updatePlayerList() {
+            playerList.innerHTML = '';
+            gameState.players.forEach((player, index) => {
+                if (player.name === 'AI Host') return;
+                
+                const playerElement = document.createElement('div');
+                playerElement.className = 'flex items-center bg-gray-700 p-3 rounded-lg';
+                
+                const avatarColors = ['bg-purple-500', 'bg-blue-500', 'bg-green-500', 'bg-red-500', 'bg-yellow-500', 'bg-pink-500'];
+                const colorIndex = index % avatarColors.length;
+                
+                playerElement.innerHTML = `
+                    <div class="relative">
+                        <div class="avatar-placeholder ${avatarColors[colorIndex]} mr-3">${player.avatar}</div>
+                        ${player.role ? '<div class="role-tag" title="' + player.role + '"><i class="fas fa-user-tag"></i></div>' : ''}
+                    </div>
+                    <div class="flex-grow">
+                        <div class="font-medium">${player.name}</div>
+                        ${player.role ? '<div class="text-xs text-gray-400">' + player.role + '</div>' : ''}
+                    </div>
+                    ${player.name === gameState.playerName ? '<div class="text-xs bg-yellow-500 text-black px-2 py-1 rounded-full">You</div>' : ''}
+                `;
+                
+                playerList.appendChild(playerElement);
+            });
+        }
+
+        function updateScoreboard() {
+            scoreboard.innerHTML = '';
+            
+            // Sort players by score (descending)
+            const sortedPlayers = [...gameState.players]
+                .filter(p => p.name !== 'AI Host')
+                .sort((a, b) => b.score - a.score);
+            
+            sortedPlayers.forEach((player, index) => {
+                const playerElement = document.createElement('div');
+                playerElement.className = `flex items-center justify-between bg-gray-700 p-3 rounded-lg ${player.name === gameState.playerName ? 'border border-yellow-500' : ''}`;
+                
+                playerElement.innerHTML = `
+                    <div class="flex items-center">
+                        ${index === 0 ? '<span class="text-yellow-400 mr-2"><i class="fas fa-crown"></i></span>' : ''}
+                        <div class="avatar-placeholder ${index === 0 ? 'glow' : ''} ${['bg-purple-500', 'bg-blue-500', 'bg-green-500', 'bg-red-500', 'bg-yellow-500', 'bg-pink-500'][index % 6]} mr-3">${player.avatar}</div>
+                        <span>${player.name}</span>
+                    </div>
+                    <span class="font-bold">${player.score}</span>
+                `;
+                
+                scoreboard.appendChild(playerElement);
+            });
+        }
+
+        function updateRolesList() {
+            rolesList.innerHTML = '';
+            
+            gameState.players.forEach(player => {
+                if (player.name !== 'AI Host' && player.role) {
+                    const roleElement = document.createElement('div');
+                    roleElement.className = 'flex items-center';
+                    roleElement.innerHTML = `
+                        <span class="inline-block w-3 h-3 rounded-full ${player.name === gameState.playerName ? 'bg-yellow-500' : 'bg-green-500'} mr-2"></span>
+                        <span>${player.name}: <span class="text-yellow-400">${player.role}</span></span>
+                    `;
+                    rolesList.appendChild(roleElement);
+                }
+            });
+        }
+
+        function simulateGameStart() {
+            // Hide/show appropriate UI elements
+            waitingArea.classList.add('hidden');
+            inputArea.classList.remove('hidden');
+            gameTopic.classList.remove('hidden');
+            votingArea.classList.add('hidden');
+            resultsArea.classList.add('hidden');
+            
+            // Set a random topic
+            const randomTopic = topics[Math.floor(Math.random() * topics.length)];
+            topicText.textContent = randomTopic;
+            
+            // Assign random roles to players (excluding AI Host)
+            gameState.players.forEach(player => {
+                if (player.name !== 'AI Host') {
+                    player.role = roles[Math.floor(Math.random() * roles.length)];
+                }
+            });
+            
+            updateRolesList();
+            
+            // Start countdown timer
+            let timeLeft = 60;
+            timeLeftDisplay.textContent = timeLeft;
+            
+            const timer = setInterval(() => {
+                timeLeft--;
+                timeLeftDisplay.textContent = timeLeft;
+                
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    startVotingPhase();
+                }
+            }, 1000);
+            
+            // Simulate other players submitting responses
+            setTimeout(() => {
+                simulatePlayerSubmissions();
+            }, 15000);
+        }
+
+        function simulatePlayerSubmissions() {
+            // Clear previous submissions
+            submissionsArea.innerHTML = '';
+            
+            // Add player submissions (simulated)
+            gameState.players.forEach(player => {
+                if (player.name !== 'AI Host' && player.name !== gameState.playerName) {
+                    const responses = [
+                        `"${player.name}'s strategy is so bad, even the interns are questioning it"`,
+                        `"I've seen more growth on moldy bread than ${player.name}'s last campaign"`,
+                        `"${player.name}'s analytics are so wrong, they make astrology look scientific"`,
+                        `"If ${player.name}'s plan was any worse, it would be called 'Twitter for Business'"`,
+                        `"${player.name} couldn't sell water in a desert"`,
+                        `"${player.name}'s last presentation put the entire team to sleep"`
+                    ];
+                    
+                    const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+                    
+                    const submissionElement = document.createElement('div');
+                    submissionElement.className = 'chat-bubble player-bubble';
+                    submissionElement.innerHTML = `
+                        <div class="font-bold text-${player.name === gameState.playerName ? 'yellow' : 'blue'}-400 mb-1">${player.name}:</div>
+                        <p>${randomResponse}</p>
+                    `;
+                    
+                    submissionsArea.appendChild(submissionElement);
+                }
+            });
+        }
+
+        function submitResponse() {
+            const response = playerInput.value.trim();
+            
+            if (!response) {
+                alert('Please enter your trash talk response');
+                return;
+            }
+            
+            // Add player's submission to the chat
+            const submissionElement = document.createElement('div');
+            submissionElement.className = 'chat-bubble player-bubble';
+            submissionElement.innerHTML = `
+                <div class="font-bold text-yellow-400 mb-1">${gameState.playerName}:</div>
+                <p>${response}</p>
+            `;
+            
+            submissionsArea.appendChild(submissionElement);
+            
+            // Clear input
+            playerInput.value = '';
+            
+            // Disable input while others finish
+            playerInput.disabled = true;
+            submitResponseBtn.disabled = true;
+            
+            // Simulate moving to voting phase after delay
+            setTimeout(() => {
+                startVotingPhase();
+            }, 3000);
+        }
+
+        function startVotingPhase() {
+            gameState.gameStatus = 'voting';
+            
+            // Hide input area, show voting area
+            inputArea.classList.add('hidden');
+            votingArea.classList.remove('hidden');
+            
+            // Add AI message about voting
+            const votingMessage = document.createElement('div');
+            votingMessage.className = 'chat-bubble ai-bubble';
+            votingMessage.innerHTML = `
+                <div class="font-bold text-yellow-400 mb-1">AI Host:</div>
+                <p>Time to vote for the King of Trash! Click on the best (or worst) response below.</p>
+                <div class="mt-2 text-sm text-gray-300">
+                    <p>Share this voting link with others: <span class="text-blue-400">${gameState.votingLink}</span></p>
+                </div>
+            `;
+            
+            chatDisplay.appendChild(votingMessage);
+            
+            // Create voting buttons (simulated)
+            votingButtons.innerHTML = '';
+            votingButtons.classList.remove('hidden');
+            
+            // Add player submissions as voting options
+            gameState.players.forEach(player => {
+                if (player.name !== 'AI Host') {
+                    const voteBtn = document.createElement('button');
+                    voteBtn.className = 'vote-button bg-gray-700 hover:bg-gray-600 p-3 rounded-lg text-left transition';
+                    voteBtn.innerHTML = `
+                        <div class="font-bold text-${player.name === gameState.playerName ? 'yellow' : 'blue'}-400">${player.name}</div>
+                        <div class="text-sm text-gray-300 mt-1">"Sample response from ${player.name}"</div>
+                    `;
+                    
+                    voteBtn.addEventListener('click', () => {
+                        // Highlight selected vote
+                        document.querySelectorAll('.vote-button').forEach(btn => {
+                            btn.classList.remove('bg-yellow-500', 'text-black');
+                        });
+                        voteBtn.classList.add('bg-yellow-500', 'text-black');
+                        
+                        // In a real app, you would send the vote to the server
+                        setTimeout(() => {
+                            showResults();
+                        }, 2000);
+                    });
+                    
+                    votingButtons.appendChild(voteBtn);
+                }
+            });
+        }
+
+        function showResults() {
+            gameState.gameStatus = 'results';
+            
+            // Hide voting buttons, show results
+            votingButtons.classList.add('hidden');
+            resultsArea.classList.remove('hidden');
+            
+            // Randomly select a winner for demo purposes
+            const potentialWinners = gameState.players.filter(p => p.name !== 'AI Host');
+            const winner = potentialWinners[Math.floor(Math.random() * potentialWinners.length)];
+            winner.score += 1;
+            
+            // Update scoreboard
+            updateScoreboard();
+            
+            // Add AI message about results
+            const resultsMessage = document.createElement('div');
+            resultsMessage.className = 'chat-bubble ai-bubble';
+            resultsMessage.innerHTML = `
+                <div class="font-bold text-yellow-400 mb-1">AI Host:</div>
+                <p>The winner of this round is <span class="font-bold text-yellow-400">${winner.name}</span> with their savage response!</p>
+                <div class="mt-2">
+                    <p class="italic">"Their amazing trash talk here"</p>
+                </div>
+                <div class="mt-3 flex justify-center">
+                    <button id="nextRoundBtn" class="px-4 py-2 bg-yellow-500 text-black rounded-lg hover:bg-yellow-400 transition font-bold">
+                        ${gameState.currentRound < gameState.totalRounds ? 'Next Round' : 'Show Final Results'}
+                    </button>
+                </div>
+            `;
+            
+            chatDisplay.appendChild(resultsMessage);
+            
+            // Add event listener for next round button
+            document.getElementById('nextRoundBtn').addEventListener('click', () => {
+                if (gameState.currentRound < gameState.totalRounds) {
+                    gameState.currentRound++;
+                    currentRoundDisplay.textContent = gameState.currentRound;
+                    simulateGameStart();
+                } else {
+                    showFinalResults();
+                }
+            });
+        }
+
+        function showFinalResults() {
+            // Clear chat and show final results
+            chatDisplay.innerHTML = '';
+            
+            // Sort players by score to determine winner
+            const sortedPlayers = [...gameState.players]
+                .filter(p => p.name !== 'AI Host')
+                .sort((a, b) => b.score - a.score);
+            
+            const winner = sortedPlayers[0];
+            
+            const finalMessage = document.createElement('div');
+            finalMessage.className = 'chat-bubble ai-bubble';
+            finalMessage.innerHTML = `
+                <div class="font-bold text-yellow-400 mb-1">AI Host:</div>
+                <p class="text-center text-2xl mb-4">🏆 Tournament Complete! 🏆</p>
+                <p class="text-center text-xl mb-6">The undisputed <span class="font-bold text-yellow-400">King of Trash</span> is...</p>
+                <div class="text-center">
+                    <div class="inline-block bg-yellow-500 text-black px-6 py-3 rounded-lg">
+                        <div class="text-3xl font-bold">${winner.name}</div>
+                        <div class="text-sm">with ${winner.score} wins</div>
+                    </div>
+                </div>
+                <div class="mt-8 text-center">
+                    <button id="newGameBtn" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-500 transition font-bold">
+                        Start New Game
+                    </button>
+                </div>
+            `;
+            
+            chatDisplay.appendChild(finalMessage);
+            
+            document.getElementById('newGameBtn').addEventListener('click', () => {
+                // Reset game state and start over
+                gameState.currentRound = 1;
+                gameState.players.forEach(p => p.score = 0);
+                currentRoundDisplay.textContent = gameState.currentRound;
+                updateScoreboard();
+                simulateGameStart();
+            });
+        }
+
+        // Initialize with some demo data
+        function initDemo() {
+            // Add some sample players to the landing page illustration
+            const samplePlayers = [
+                { name: 'TrashMaster', score: 42, avatar: 'TM' },
+                { name: 'RoastKing', score: 38, avatar: 'RK' },
+                { name: 'BurnQueen', score: 35, avatar: 'BQ' },
+                { name: 'SavageSam', score: 32, avatar: 'SS' }
+            ];
+            
+            const demoPlayerList = document.createElement('div');
+            demoPlayerList.className = 'mt-6 bg-gray-800 p-4 rounded-lg';
+            demoPlayerList.innerHTML = `
+                <h3 class="text-lg font-semibold mb-3 text-yellow-400">Current Top Players</h3>
+                <div class="space-y-2">
+                    ${samplePlayers.map(player => `
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <div class="avatar-placeholder ${['bg-purple-500', 'bg-blue-500', 'bg-green-500', 'bg-red-500'][samplePlayers.indexOf(player) % 4]} mr-2">${player.avatar}</div>
+                                <span>${player.name}</span>
+                            </div>
+                            <span class="text-yellow-400 font-bold">${player.score}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            
+            landingPage.insertBefore(demoPlayerList, landingPage.lastElementChild);
+            
+            // Check URL parameters for join or vote codes
+            checkUrlParameters();
+        }
+
+        // Initialize the demo when page loads
+        window.addEventListener('DOMContentLoaded', initDemo);
+    </script>
 </body>
 </html>
