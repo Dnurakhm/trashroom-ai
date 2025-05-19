@@ -6,12 +6,12 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 export async function generateGameRound(theme = "общая", playerCount = 4) {
   const prompt = `
-Ты AI-хост трэш-игры. Генерируй тему и роли в стиле трэш-корпоративной баттл-комнаты.
-Тема должна быть в жанре: ${theme}
-Сгенерируй JSON:
+Ты AI-хост трэш-игры. Генерируй ТОЛЬКО валидный JSON-блок. Без пояснений, заголовков и текста.
+Тема в жанре: ${theme}
+JSON:
 {
-  "topic": "Одна провокационная тема",
-  "roles": ["роль 1", "роль 2", ..., до ${playerCount}]
+  "topic": "тема",
+  "roles": ["роль 1", ..., до ${playerCount}]
 }
 `;
 
