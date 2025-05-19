@@ -106,7 +106,7 @@
     </div>
   </div>
 
-  <script>
+ <script>
     let currentRoomId = null;
     let currentPlayer = null;
     let timerInterval;
@@ -159,11 +159,13 @@
 
     function startTimer(seconds) {
       let remaining = seconds;
-      document.getElementById("timer").innerText = ⏱ Осталось: ${remaining} сек;
+      // Corrected usage of template literals with backticks
+      document.getElementById("timer").innerText = `⏱ Осталось: ${remaining} сек`;
 
       timerInterval = setInterval(() => {
         remaining--;
-        document.getElementById("timer").innerText = ⏱ Осталось: ${remaining} сек;
+        // Corrected usage of template literals with backticks
+        document.getElementById("timer").innerText = `⏱ Осталось: ${remaining} сек`;
 
         if (remaining <= 0) {
           clearInterval(timerInterval);
@@ -196,7 +198,7 @@
       list.innerHTML = "";
       room.responses.forEach(r => {
         const li = document.createElement("li");
-        li.innerHTML = <b>${r.name}</b>: ${r.text} <button class="votebtn" onclick="vote('${r.name}')">🔥 Голос</button>;
+        li.innerHTML = `<b>${r.name}</b>: ${r.text} <button class="votebtn" onclick="vote('${r.name}')">🔥 Голос</button>`; // Also ensured backticks here for consistency, though not strictly necessary if no variables were used.
         list.appendChild(li);
       });
 
