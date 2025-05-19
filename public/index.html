@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>TrashRoom AI</title>
+</head>
+<body>
+  <h1>🔥 Трэш-комната с AI-хостом</h1>
+  <input id="userInput" placeholder="Напиши своё мнение" />
+  <button onclick="askAI()">Отправить</button>
+  <pre id="response"></pre>
+
+  <script>
+    async function askAI() {
+      const input = document.getElementById("userInput").value;
+      const res = await fetch("/api/ask", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: input })
+      });
+      const data = await res.json();
+      document.getElementById("response").innerText = data.reply;
+    }
+  </script>
+</body>
+</html>
