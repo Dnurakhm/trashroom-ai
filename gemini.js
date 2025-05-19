@@ -1,3 +1,8 @@
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import dotenv from "dotenv";
+dotenv.config();
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 export async function generateGameRound(theme = "общая", playerCount = 4) {
   const prompt = `
 Ты AI-хост трэш-игры. Сгенерируй ТОЛЬКО JSON. Никаких пояснений, markdown или форматирования. Пример:
