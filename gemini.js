@@ -4,18 +4,15 @@ dotenv.config();
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-export async function generateGameRound(playerCount = 4) {
+export async function generateGameRound(theme = "общая", playerCount = 4) {
   const prompt = `
-Ты — ведущий юмористической трэш-игры. Твоя задача:
-1. Сгенерировать провокационную тему для дискуссии.
-2. Назначить каждому игроку забавную или трэшовую роль (например: "Уволенный программист", "Токсичный маркетолог", "Инфлюенсер-неудачник").
-
-Ответь строго в формате:
+Ты AI-хост трэш-игры. Генерируй тему и роли в стиле трэш-корпоративной баттл-комнаты.
+Тема должна быть в жанре: ${theme}
+Сгенерируй JSON:
 {
-  "topic": "тема",
-  "roles": ["роль1", "роль2", "роль3", "роль4"]
+  "topic": "Одна провокационная тема",
+  "roles": ["роль 1", "роль 2", ..., до ${playerCount}]
 }
-Количество ролей = ${playerCount}.
 `;
 
   const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
@@ -27,7 +24,7 @@ export async function generateGameRound(playerCount = 4) {
   } catch (err) {
     return {
       topic: "Ошибка генерации темы",
-      roles: Array(playerCount).fill("Игрок без роли")
+      roles: Array(playerCount).fill("Безумный участник")
     };
   }
 }
