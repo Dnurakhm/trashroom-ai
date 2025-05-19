@@ -2,27 +2,114 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <title>TrashRoom</title>
+  <title>TrashRoom 🔥</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: #0d0d0d;
+      color: #f0f0f0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
+    }
+    input, textarea, button {
+      font-family: inherit;
+      border-radius: 6px;
+      border: none;
+      padding: 0.5rem 1rem;
+      margin: 0.5rem;
+      font-size: 1rem;
+    }
+    input, textarea {
+      width: 250px;
+      background: #1a1a1a;
+      color: #fff;
+    }
+    button {
+      background: #ff2d75;
+      color: white;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    button:hover {
+      background: #ff4c8b;
+    }
+    #game, #answerSection, #answersSection {
+      margin-top: 2rem;
+      width: 100%;
+      max-width: 600px;
+      border: 1px solid #333;
+      padding: 1rem;
+      border-radius: 8px;
+      background: #1a1a1a;
+    }
+    .role {
+      color: #ffc107;
+      font-size: 1.2rem;
+      margin: 0.5rem 0;
+    }
+    .topic {
+      color: #00e5ff;
+      font-size: 1.1rem;
+    }
+    #timer {
+      font-size: 1.3rem;
+      margin-top: 1rem;
+      color: #7cff4c;
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+    li {
+      margin: 0.5rem 0;
+      background: #292929;
+      padding: 0.5rem;
+      border-radius: 6px;
+    }
+    .votebtn {
+      margin-left: 1rem;
+      background: #00e5ff;
+      color: #000;
+    }
+  </style>
 </head>
 <body>
-  <h2>🎮 TrashRoom – тестовая комната</h2>
-  <input id="nickname" placeholder="Введите ваш ник" />
-  <input id="theme" placeholder="Тема (например: IT)" />
-  <input id="count" placeholder="Количество игроков" />
-  <button onclick="createRoom()">Создать комнату</button>
+  <h1>🔥 TrashRoom — AI трэш-чат</h1>
 
-  <br><br>
-  <input id="joinRoomId" placeholder="ID комнаты" />
-  <button onclick="joinRoom()">Присоединиться</button>
+  <div id="join">
+    <input id="nickname" placeholder="Твой никнейм 🤖" />
+    <input id="theme" placeholder="Тематика (IT, Офис...)" />
+    <input id="count" type="number" placeholder="Кол-во игроков" />
+    <button onclick="createRoom()">Создать комнату</button>
+    <br />
+    <input id="joinRoomId" placeholder="ID комнаты" />
+    <button onclick="joinRoom()">Присоединиться</button>
+  </div>
 
-  <br><br>
-  <button onclick="startGame()">▶ Начать игру</button>
+  <div id="game" style="display:none;">
+    <div class="role" id="role"></div>
+    <div class="topic" id="topic"></div>
+    <div id="timer"></div>
 
-  <pre id="output"></pre>
+    <div id="answerSection" style="display: none;">
+      <textarea id="answer" placeholder="Напиши своё трэш-мнение..."></textarea><br />
+      <button onclick="submitAnswer()">Отправить</button>
+    </div>
+
+    <div id="answersSection" style="display: none;">
+      <h3>Ответы игроков:</h3>
+      <ul id="allAnswers"></ul>
+    </div>
+  </div>
 
   <script>
     let currentRoomId = null;
     let currentPlayer = null;
+    let timerInterval;
 
     async function createRoom() {
       const theme = document.getElementById("theme").value || "общая";
@@ -34,7 +121,7 @@
       });
       const room = await res.json();
       currentRoomId = room.id;
-      document.getElementById("output").innerText = "Создана комната: " + room.id;
+      alert("Создана комната: " + room.id);
     }
 
     async function joinRoom() {
@@ -48,7 +135,10 @@
         body: JSON.stringify({ roomId, playerName })
       });
       const data = await res.json();
-      document.getElementById("output").innerText = JSON.stringify(data, null, 2);
+      document.getElementById("join").style.display = "none";
+      document.getElementById("game").style.display = "block";
+
+      if (data.state === "ready") startGame(); // автозапуск, если комната полная
     }
 
     async function startGame() {
@@ -58,7 +148,68 @@
         body: JSON.stringify({ roomId: currentRoomId })
       });
       const data = await res.json();
-      document.getElementById("output").innerText = JSON.stringify(data, null, 2);
+      const playerData = data.players.find(p => p.name === currentPlayer);
+
+      document.getElementById("role").innerText = "🎭 Роль: " + playerData.role;
+      document.getElementById("topic").innerText = "💥 Тема: " + data.topic;
+      document.getElementById("answerSection").style.display = "block";
+
+      startTimer(60);
+    }
+
+    function startTimer(seconds) {
+      let remaining = seconds;
+      document.getElementById("timer").innerText = ⏱ Осталось: ${remaining} сек;
+
+      timerInterval = setInterval(() => {
+        remaining--;
+        document.getElementById("timer").innerText = ⏱ Осталось: ${remaining} сек;
+
+        if (remaining <= 0) {
+          clearInterval(timerInterval);
+          document.getElementById("answerSection").style.display = "none";
+          fetchResponses();
+        }
+      }, 1000);
+    }
+
+    async function submitAnswer() {
+      const text = document.getElementById("answer").value;
+      await fetch("/api/submit-response", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ roomId: currentRoomId, playerName: currentPlayer, text })
+      });
+      document.getElementById("answerSection").style.display = "none";
+    }
+
+    async function fetchResponses() {
+      const res = await fetch(`/api/room/${currentRoomId}`);
+      const room = await res.json();
+
+      if (room.state !== "voting") {
+        setTimeout(fetchResponses, 2000);
+        return;
+      }
+
+      const list = document.getElementById("allAnswers");
+      list.innerHTML = "";
+      room.responses.forEach(r => {
+        const li = document.createElement("li");
+        li.innerHTML = <b>${r.name}</b>: ${r.text} <button class="votebtn" onclick="vote('${r.name}')">🔥 Голос</button>;
+        list.appendChild(li);
+      });
+
+      document.getElementById("answersSection").style.display = "block";
+    }
+
+    async function vote(name) {
+      await fetch("/api/submit-vote", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ roomId: currentRoomId, votedFor: name })
+      });
+      alert("✅ Голос засчитан за: " + name);
     }
   </script>
 </body>
